@@ -5,6 +5,9 @@
 import spartan as st
 
 def test():
+    # set the computing engine
+    st.config(st.engine.POWERGRAPH)
+
     # load graph data
     st.addGraph("mockInput.spt", "facebook")
     st.showList()
