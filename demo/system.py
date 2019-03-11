@@ -41,7 +41,7 @@ class Model():
         #TODO
         print "preProcess is finished successfully\n"
 
-    def showResults(self, plot):
+    def showResults(self, plot=False):
         #TODO
         pass
 
