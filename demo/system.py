@@ -6,7 +6,7 @@ import os
 
 class Engine:
     SINGLEMACHINE = "framework.SingleMachine"
-    POWERGRAPH = "POWERGRAPH"
+    POWERGRAPH = "POWERGRAPH" #TODO
 
 #tc:triangle count
 class TcPolicy:
@@ -24,22 +24,18 @@ class EdPolicy:
 
 class Model():
     def __init__(self):
-        self.__name = None
-        self.file_path = "./inputData/"
+        self.name = None
+        self.source_path = None
+        self.out_path = "./outputData/"
         self.file_name = None
 
 
-    def create(self, file_name, model_name):
-        self.__name = model_name
-        if (file_name.find('/') == -1):
-            self.file_name = file_name
-        else:
-            self.file_path, self.file_name = os.path.split(file_name)
+    def create(self, input_data, model_name):
+        self.name = model_name
+        self.source_path = input_data[0]
+        self.file_name = input_data[1]
+        self.sparse_matrix = input_data[2]
         return self
-
-    def preProcess(self):
-        #TODO
-        print "preProcess is finished successfully\n"
 
     def showResults(self, plot=False):
         #TODO
@@ -52,9 +48,8 @@ class TraingleCount(Model):
 
 class AnomalyDetection(Model):
     def run(self, algorithm, k):
-        algorithm(k, self.file_path, self.file_name)
+        self.result = algorithm(k, self.sparse_matrix, self.source_path, self.out_path, self.file_name)
 
 class EigenDecompose(Model):
     def run(self, algorithm, k):
-        #TODO
-        print "run is finished successfully\n"
+        self.result = algorithm(k, self.sparse_matrix, self.out_path, self.file_name)

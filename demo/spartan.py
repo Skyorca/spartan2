@@ -2,9 +2,11 @@
 # -*- coding:utf-8 -*-
 # Author:Viki Zhao
 
-
+import sys
+import os
 import system
 import importlib
+from ioutil import coo_matrix, checkfilegz, loadedge2sm
 
 
 #engine
@@ -22,8 +24,19 @@ traingle_count = system.TraingleCount()
 '''
 
 
-def SFrame(file_name):
-    return file_name
+def SFrame(file):
+    if (file.find('/') == -1):
+        file_path = "./inputData/"
+        file_name = file
+    else:
+        file_path, file_name = os.path.split(file)
+    freqfile = checkfilegz(file_path + file_name + '.edgelist')
+    if freqfile is None:
+        print("Can not find this file, please check the file path!\n")
+        sys.exit()
+    sparse_matrix = loadedge2sm(freqfile, coo_matrix)
+    sparse_matrix = sparse_matrix.asfptype()
+    return file_path, file_name, sparse_matrix
 
 
 def config(frame_name):
