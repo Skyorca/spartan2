@@ -10,13 +10,13 @@ def test():
     st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    data = st.SFrame("yelp")
+    data = st.SFrame("example")
 
     # create a anomaly detection model
     admodel = st.anomaly_detection.create(data, "anomaly detection")
 
     # run the model
-    admodel.run(st.ad_policy.HOLOSCOPE, k=3)
+    admodel.run(st.ad_policy.FRAUDAR)
 
     # show the results
     admodel.showResults()

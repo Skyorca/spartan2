@@ -35,7 +35,6 @@ def SFrame(file):
         print("Can not find this file, please check the file path!\n")
         sys.exit()
     sparse_matrix = loadedge2sm(freqfile, coo_matrix)
-    sparse_matrix = sparse_matrix.asfptype()
     return file_path, file_name, sparse_matrix
 
 

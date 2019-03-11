@@ -4,10 +4,12 @@
 
 from singleMachine.holoscope.holoscopeFraudDect import Ptype, HoloScope
 from singleMachine.holoscope.mytools.ioutil import checkfilegz, saveSimpleListData
+from singleMachine.fraudar.greedy import logWeightedAveDegree, np
 import scipy.sparse.linalg as slin
 
 class AnomalyDetection:
-    def HOLOSCOPE(self, k, sparse_matrix, source_path, out_path, file_name):
+    def HOLOSCOPE(self, sparse_matrix, source_path, out_path, file_name, k):
+        sparse_matrix = sparse_matrix.asfptype()
         ptype = [Ptype.freq]
         tsfile = checkfilegz(source_path + file_name + 'ts.dict')
         if (tsfile):
@@ -28,7 +30,15 @@ class AnomalyDetection:
             export_file = out_path + file_name + '.blk{}'.format(nb + 1)
             saveSimpleListData(res[1][0], export_file + '.rows')
             saveSimpleListData(res[1][1], export_file + '.colscores')
-        return res[1]
+        return res
+    
+    def FRAUDAR(self, sparse_matrix, out_path, file_name):
+        res = logWeightedAveDegree(sparse_matrix)
+        print res
+        np.savetxt("%s.rows" % (out_path + file_name, ), np.array(list(res[0][0])), fmt='%d')
+        np.savetxt("%s.cols" % (out_path + file_name, ), np.array(list(res[0][1])), fmt='%d')
+        print "score obtained is ", res[1]
+        return res
 
 class EigenDecompose:
     def SVDS(self, k, sparse_matrix, out_path, file_name):

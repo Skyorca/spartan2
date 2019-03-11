@@ -48,7 +48,9 @@ class TraingleCount(Model):
 
 class AnomalyDetection(Model):
     def run(self, algorithm, k):
-        self.result = algorithm(k, self.sparse_matrix, self.source_path, self.out_path, self.file_name)
+        self.result = algorithm(self.sparse_matrix, self.source_path, self.out_path, self.file_name, k)
+    def run(self, algorithm):
+        self.result = algorithm(self.sparse_matrix, self.out_path, self.file_name)
 
 class EigenDecompose(Model):
     def run(self, algorithm, k):
