@@ -4,28 +4,23 @@
 
 import spartan as st
 
+
 def test():
     # set the computing engine
-    st.config(st.engine.POWERGRAPH)
+    st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    st.addGraph("mockInput.spt", "facebook")
-    st.showList()
+    data = st.SFrame("yelp")
 
-    # create a model
-    model = st.createModel("facebook")
-
-    # preProcess the graph
-    model.preProcess()
+    # create a anomaly detection model
+    admodel = st.anomaly_detection.create(data, "anomaly detection")
 
     # run the model
-    model.run(st.run_policy.PAGERANK)
+    admodel.run(st.ad_policy.HOLOSCOPE, k=3)
 
-    # show the result
-    model.showResult()
+    # show the results
+    admodel.showResults()
 
-    # export result to local file
-    model.export("result.spt")
 
 if __name__ == "__main__":
     test()
