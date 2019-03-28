@@ -6,7 +6,7 @@ import sys
 import os
 import system
 import importlib
-from ioutil import coo_matrix, checkfilegz, loadedge2sm
+from ioutil import checkfilegz, loadedgelist
 
 
 #engine
@@ -26,21 +26,22 @@ traingle_count = system.TraingleCount()
 
 def SFrame(file):
     if (file.find('/') == -1):
-        file_path = "./inputData/"
-        file_name = file
-    else:
-        file_path, file_name = os.path.split(file)
-    freqfile = checkfilegz(file_path + file_name + '.edgelist')
+        file = "inputData/" + file
+    freqfile = checkfilegz(file + '.edgelist')
+
     if freqfile is None:
         print("Can not find this file, please check the file path!\n")
         sys.exit()
-    sparse_matrix = loadedge2sm(freqfile, coo_matrix)
-    return file_path, file_name, sparse_matrix
+
+    edgelist = loadedgelist(freqfile)
+
+    return edgelist
 
 
 def config(frame_name):
     global ad_policy, tc_policy, ed_policy
     frame = importlib.import_module(frame_name)
+    
     #algorithm list
     ad_policy = frame.AnomalyDetection()
     tc_policy = frame.TriangleCount()

@@ -10,7 +10,7 @@ def test():
     st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    data = st.SFrame("yelp")
+    data = st.SFrame("inputData/example")
 
     # create a anomaly detection model
     admodel = st.anomaly_detection.create(data, "anomaly detection")

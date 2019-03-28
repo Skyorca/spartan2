@@ -2,39 +2,33 @@
 # -*- coding:utf-8 -*-
 # Author:Viki Zhao
 
-import os
+import os, sys
+
+alg_list = {
+    "AnomalyDetection":{
+        "HOLOSCOPE": "HOLOSCOPE",
+        "FRAUDAR": "FRAUDAR"
+    },
+    "EigenDecompose":{
+        "SVDS": "SVDS"
+    },
+    "TriangleCount":{
+        "THINKD": "THINKD"
+    }
+}
 
 class Engine:
     SINGLEMACHINE = "framework.SingleMachine"
-    POWERGRAPH = "POWERGRAPH" #TODO
-
-#tc:triangle count
-class TcPolicy:
-    def __init__(self, engine):
-        self.DOULION = engine.TriangleCount().doulion
-
-#ad:anomaly detection
-class AdPolicy:
-    def __init__(self, engine):
-        self.HOLOSCOPE = engine.AnomalyDetection().holoscope
-
-#ed:eigen decomposition
-class EdPolicy:
-    SVDS = "SVDS"
 
 class Model():
     def __init__(self):
         self.name = None
-        self.source_path = None
+        self.edgelist = None
         self.out_path = "./outputData/"
-        self.file_name = None
-
 
     def create(self, input_data, model_name):
         self.name = model_name
-        self.source_path = input_data[0]
-        self.file_name = input_data[1]
-        self.sparse_matrix = input_data[2]
+        self.edgelist = input_data
         return self
 
     def showResults(self, plot=False):
@@ -42,16 +36,20 @@ class Model():
         pass
 
 class TraingleCount(Model):
-    def run(self, algorithm, p):
-        #TODO
-        print "run is finished successfully\n"
-
-class AnomalyDetection(Model):
-    def run(self, algorithm, k):
-        self.result = algorithm(self.sparse_matrix, self.source_path, self.out_path, self.file_name, k)
-    def run(self, algorithm):
-        self.result = algorithm(self.sparse_matrix, self.out_path, self.file_name)
+    def run(self, algorithm, sampling_ratio, number_of_trials, mode="batch"):
+        pass
+        
+class AnomalyDetection(Model):        
+    def run(self, algorithm, k = None):
+        alg_name = str(algorithm)
+        if alg_name.find(alg_list["AnomalyDetection"]["HOLOSCOPE"]) != -1:
+            algorithm(self.edgelist, self.out_path, self.name, k)
+        elif alg_name.find(alg_list["AnomalyDetection"]["FRAUDAR"]) != -1:
+            algorithm(self.edgelist, self.out_path, self.name)
+        else:
+            print("Can not find this algorithm!\n")
+            sys.exit()
 
 class EigenDecompose(Model):
     def run(self, algorithm, k):
-        self.result = algorithm(k, self.sparse_matrix, self.out_path, self.file_name)
+        algorithm(self.edgelist, self.out_path, self.name, k)

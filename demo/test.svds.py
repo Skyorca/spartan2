@@ -10,7 +10,7 @@ def test():
     st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    data = st.SFrame("yelp")
+    data = st.SFrame("inputData/example")
 
     # create a eigen decomposition model
     edmodel = st.eigen_decompose.create(data, "eigen decomposition")
