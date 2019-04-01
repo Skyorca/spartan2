@@ -4,6 +4,7 @@
 
 from singleMachine.holoscope.holoscopeFraudDect import Ptype, HoloScope
 from singleMachine.fraudar.greedy import logWeightedAveDegree, np
+from singleMachine.eaglemine.eaglemine import graph_to_cluster
 from singleMachine.ioutil import saveSimpleListData, loadedgelist2sm
 import scipy.sparse.linalg as slin
 
@@ -32,6 +33,10 @@ class AnomalyDetection:
         np.savetxt("%s.rows" % (out_path + file_name, ), np.array(list(res[0][0])), fmt='%d')
         np.savetxt("%s.cols" % (out_path + file_name, ), np.array(list(res[0][1])), fmt='%d')
         print "score obtained is ", res[1]
+
+    def EAGLEMINE(self, edgelist, feature, isBigraph):
+        graph_to_cluster(edgelist, feature, isBigraph)
+
 
 class EigenDecompose:
     def SVDS(self, edgelist, out_path, file_name, k):
