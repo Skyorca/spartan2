@@ -46,7 +46,7 @@ class AnomalyDetection(Model):
         if alg_name.find(alg_list["AnomalyDetection"]["HOLOSCOPE"]) != -1:
             algorithm(self.edgelist, self.out_path, self.name, k)
         elif alg_name.find(alg_list["AnomalyDetection"]["EAGLEMINE"]) != -1:
-            algorithm(self.edgelist, k, isBigraph)
+            return algorithm(self.edgelist, k, isBigraph)
         else:
             algorithm(self.edgelist, self.out_path, self.name)
 

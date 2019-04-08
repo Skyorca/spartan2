@@ -10,7 +10,7 @@ def test():
     st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    data = st.SFrame("inputData/example")
+    data = st.loadTensor(name = "example", path = "inputData/", col_ids = ["uid", "oid", "rating"],  col_types = [int, int, int])
 
     # create a eigen decomposition model
     edmodel = st.eigen_decompose.create(data, "eigen decomposition")

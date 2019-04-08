@@ -4,13 +4,14 @@
 
 from singleMachine.holoscope.holoscopeFraudDect import Ptype, HoloScope
 from singleMachine.fraudar.greedy import logWeightedAveDegree, np
-from singleMachine.eaglemine.eaglemine import graph_to_cluster
+from singleMachine.eaglemine.eaglemine import *
 from singleMachine.ioutil import saveSimpleListData, loadedgelist2sm
 import scipy.sparse.linalg as slin
 
+
 class AnomalyDetection:
     def HOLOSCOPE(self, edgelist, out_path, file_name, k):
-        sparse_matrix = loadedgelist2sm(edgelist)
+        sparse_matrix = loadedgelist2sm(edgelist[2])
         sparse_matrix = sparse_matrix.asfptype()
         ptype = [Ptype.freq]
         alg = 'fastgreedy'
@@ -26,7 +27,7 @@ class AnomalyDetection:
             saveSimpleListData(res[1][1], export_file + '.colscores')
     
     def FRAUDAR(self, edgelist, out_path, file_name):
-        sparse_matrix = loadedgelist2sm(edgelist)
+        sparse_matrix = loadedgelist2sm(edgelist[2])
         sparse_matrix = sparse_matrix.asfptype()
         res = logWeightedAveDegree(sparse_matrix)
         print res
@@ -35,12 +36,17 @@ class AnomalyDetection:
         print "score obtained is ", res[1]
 
     def EAGLEMINE(self, edgelist, feature, isBigraph):
-        graph_to_cluster(edgelist, feature, isBigraph)
+        graph_to_cluster(edgelist[2], feature, isBigraph)
 
+        label_point = map_label_to_point("temp/point2pos.out", "outputData/hpos2label.out")
+
+        subgraph = get_subgraph(edgelist, label_point, feature)
+
+        return subgraph
 
 class EigenDecompose:
     def SVDS(self, edgelist, out_path, file_name, k):
-        sparse_matrix = loadedgelist2sm(edgelist)
+        sparse_matrix = loadedgelist2sm(edgelist[2])
         sparse_matrix = sparse_matrix.asfptype()
         res = slin.svds(sparse_matrix, k)
         export_file =out_path + file_name

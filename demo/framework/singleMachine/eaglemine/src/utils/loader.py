@@ -21,7 +21,7 @@ class Loader(object):
         sep = None
         with open(infn, 'r') as fp:
             for line in fp:
-                if (line.startswith("%") or line.startswith("#")): continue;
+                if (line.startswith("%") or line.startswith("#")): continue
                 line = line.strip()
                 if (" " in line): sep = " "
                 if ("," in line): sep = ","

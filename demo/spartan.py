@@ -24,16 +24,17 @@ traingle_count = system.TraingleCount()
 '''
 
 
-def SFrame(file):
-    if (file.find('/') == -1):
-        file = "inputData/" + file
-    freqfile = checkfilegz(file + '.edgelist')
+def loadTensor(name, path, col_ids = ["uid", "oid", "ts", "rating"], col_types = [int, int, int, float]):
+    if path == None:
+        path = "inputData/"
+    full_path = path + name
+    tensor_file = checkfilegz(full_path + '.tensor')
 
-    if freqfile is None:
+    if tensor_file is None:
         print("Can not find this file, please check the file path!\n")
         sys.exit()
 
-    edgelist = loadedgelist(freqfile)
+    edgelist = loadedgelist(tensor_file, col_ids, col_types)
 
     return edgelist
 
