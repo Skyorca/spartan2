@@ -10,7 +10,7 @@ def test():
     st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    data = st.loadTensor(name = "yelp", path = "inputData/", col_ids = ["uid", "oid", "rating"],  col_types = [int, int, int])
+    data = st.loadTensor(name = "yelp", path = "inputData/", col_ids = ["uid", "oid", "rating"], col_types = [int, int, int])
 
     # create a anomaly detection model
     admodel = st.anomaly_detection.create(data, "anomaly detection")

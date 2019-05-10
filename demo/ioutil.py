@@ -50,8 +50,6 @@ def convert_to_db_type(basic_type):
     else:
         return "TEXT"
 
-
-
 def loadedgelist(tensor_file, col_ids, col_types):
     '''
     load edge list from file

@@ -4,7 +4,7 @@
 
 from singleMachine.holoscope.holoscopeFraudDect import Ptype, HoloScope
 from singleMachine.fraudar.greedy import logWeightedAveDegree, np
-from singleMachine.eaglemine.eaglemine import *
+from singleMachine.eaglemine.eaglemine import graph_to_cluster, map_label_to_point, get_subgraph
 from singleMachine.ioutil import saveSimpleListData, loadedgelist2sm
 import scipy.sparse.linalg as slin
 
@@ -37,9 +37,7 @@ class AnomalyDetection:
 
     def EAGLEMINE(self, edgelist, feature, isBigraph):
         graph_to_cluster(edgelist[2], feature, isBigraph)
-
         label_point = map_label_to_point("temp/point2pos.out", "outputData/hpos2label.out")
-
         subgraph = get_subgraph(edgelist, label_point, feature)
 
         return subgraph
