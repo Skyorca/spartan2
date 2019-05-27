@@ -53,7 +53,7 @@ def eaglemine_cluster_view(hpos2label_infn, outfn=None, outlier_label=-1):
     cls_fig = plot_clusters(others_cls[:, :-1], [], labels, outliers=outs[::-1], ticks=False)
     if outfn is not None:
         cls_fig.savefig(outfn)
-    cls_fig.show()
+    # cls_fig.show()
 
 
 

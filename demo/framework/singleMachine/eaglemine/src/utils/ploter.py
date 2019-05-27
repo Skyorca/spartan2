@@ -10,7 +10,6 @@ __author__ = 'wenchieh'
 
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pylab as plt
 from matplotlib.colors import LogNorm
 
