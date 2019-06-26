@@ -3,6 +3,7 @@
 # Author:Viki Zhao
 
 import os, sys
+from algorithm import *
 
 alg_list = {
     "AnomalyDetection":{
@@ -25,31 +26,23 @@ class Model():
     def __init__(self):
         self.name = None
         self.edgelist = None
-        self.out_path = "./outputData/"
-
-    def create(self, input_data, model_name):
-        self.name = model_name
-        self.edgelist = input_data
-        return self
-
-    def showResults(self, plot=False):
-        #TODO
-        pass
 
 class TraingleCount(Model):
-    def run(self, algorithm, sampling_ratio, number_of_trials, mode="batch"):
+    def create(self):
         pass
-        
+
 class AnomalyDetection(Model):        
-    def run(self, algorithm, k = "outd2hub", isBigraph = True):
-        alg_name = str(algorithm)
+    def create(self, edgelist, alg_obj, model_name):
+        alg_name = str(alg_obj)
         if alg_name.find(alg_list["AnomalyDetection"]["HOLOSCOPE"]) != -1:
-            algorithm(self.edgelist, self.out_path, self.name, k)
+            return Holoscope(edgelist, alg_obj, model_name)
         elif alg_name.find(alg_list["AnomalyDetection"]["EAGLEMINE"]) != -1:
-            return algorithm(self.edgelist, k, isBigraph)
-        else:
-            algorithm(self.edgelist, self.out_path, self.name)
+            return Eaglemine(edgelist, alg_obj, model_name)
+        elif alg_name.find(alg_list["AnomalyDetection"]["FRAUDAR"]) != -1:
+            return Fraudar(edgelist, alg_obj, model_name)
 
 class EigenDecompose(Model):
-    def run(self, algorithm, k):
-        algorithm(self.edgelist, self.out_path, self.name, k)
+    def create(self, edgelist, alg_obj, model_name):
+        alg_name = str(alg_obj)
+        if alg_name.find(alg_list["EigenDecompose"]["SVDS"]) != -1:
+            return SVDS(edgelist, alg_obj, model_name)

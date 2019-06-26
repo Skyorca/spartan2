@@ -19,11 +19,14 @@
 
 __author__ = 'wenchieh'
 
+# sys
 from abc import ABCMeta, abstractmethod
+
+# third-party lib
 import numpy as np
+import networkx as nx
 from scipy.sparse import lil_matrix
 from scipy.sparse.linalg import svds
-import networkx as nx
 
 
 class BasicGraph(object):
@@ -75,6 +78,7 @@ class BasicGraph(object):
                     self.src_outd[i] += 1
                     self.dest_ind[j] += 1
                     unique_edges.add((i, j))
+        return self.src_outd, self.dest_ind
 
     def _set_hits(self, hub, auth):
         '''
@@ -83,10 +87,10 @@ class BasicGraph(object):
         :param auth: authority aray (len(auth) == # dest_node)
         :return:
         '''
-        if np.max(abs(hub)) < np.min(abs(hub)):   # len(np.where(hub <= 0)[0]) >= 0.5 * len(hub):
+        if abs(np.max(hub)) < abs(np.min(hub)):   # len(np.where(hub <= 0)[0]) >= 0.5 * len(hub):
             hub *= -1
         hub[hub < 0] = 0
-        if np.max(abs(auth)) < np.min(abs(auth)): # len(np.where(auth <= 0)[0]) >= 0.5 * len(auth):
+        if abs(np.max(auth)) < abs(np.min(auth)): # len(np.where(auth <= 0)[0]) >= 0.5 * len(auth):
             auth *= -1
         auth[auth < 0] = 0
 
@@ -130,6 +134,7 @@ class BasicGraph(object):
             k += 1
 
         self._set_hits(hub, auth)
+        return self.src_hub, self.dest_auth
 
     def get_hits_score(self):
         '''
@@ -142,6 +147,7 @@ class BasicGraph(object):
         hub = np.squeeze(np.array(hub))
         auth = np.squeeze(np.array(auth))
         self._set_hits(hub, auth)
+        return self.src_hub, self.dest_auth
 
     @abstractmethod
     def get_number_of_node(self):
@@ -170,6 +176,7 @@ class BasicGraph(object):
         for k in range(self.n_dest):
             if self.dest_ind[k] > 0:
                 self.dest_assort[k] = int(self.dest_assort[k] / self.dest_ind[k])
+        return self.src_assort, self.dest_assort
 
     @abstractmethod
     def get_corenum(self):
@@ -240,7 +247,7 @@ class BipartiteGraph(BasicGraph):
     def get_number_of_node(self):
         self.n_src = np.max(self.edgelist[:, 0]) + 1
         self.n_dest = np.max(self.edgelist[:, 1]) + 1
-        return (self.n_src, self.n_dest)
+        return self.n_src, self.n_dest
 
     def get_corenum(self):
         '''
@@ -257,6 +264,7 @@ class BipartiteGraph(BasicGraph):
         cores = nx.core_number(g).values()
         self.src_cores = cores[:self.n_src]
         self.dest_cores = cores[self.n_src:]
+        return self.src_cores, self.dest_cores
 
 
 class UnipartiteGraph(BasicGraph):
@@ -281,11 +289,12 @@ class UnipartiteGraph(BasicGraph):
         for k in range(len(xs)):
             g.add_edge(xs[k], ys[k], weight=sp_mat[xs[k], ys[k]])
         self.degree = np.asarray(g.degree().values())
+        return self.degree
 
     def get_number_of_node(self):
         max_id = np.max(self.edgelist)
         self.n_src = self.n_dest = max_id + 1
-        return (self.n_src, self.n_dest)
+        return self.n_src, self.n_dest
 
     def get_corenum(self):
         '''
@@ -296,6 +305,7 @@ class UnipartiteGraph(BasicGraph):
         g = nx.Graph()
         g.add_edges_from(self.edgelist)
         self.src_cores = self.dest_cores = nx.core_number(g).values()
+        return self.src_cores, self.dest_cores
 
     def get_triangle(self):
         '''
@@ -306,6 +316,7 @@ class UnipartiteGraph(BasicGraph):
         g = nx.Graph()
         g.add_edges_from(self.edgelist)
         self.nds_triangles = nx.triangles(g).values()
+        return self.nds_triangles
 
     def get_associate_deg(self):
         '''
@@ -316,9 +327,11 @@ class UnipartiteGraph(BasicGraph):
             self.ass_degs = np.zeros((self.n_src, 2), int)
             self.ass_degs[:, 0] = self.src_outd
             self.ass_degs[:, 1] = self.dest_ind
+            return self.ass_degs
         else:
             ValueError("No associate features: Only the node of directed "
                        "homogeneous graph have both in-degree and out-degree!")
+            return None
 
     def get_pagerank(self):
         sp_mat = self._get_sparse_matrix()
@@ -327,6 +340,7 @@ class UnipartiteGraph(BasicGraph):
         for k in range(len(xs)):
             g.add_edge(xs[k], ys[k], weight=sp_mat[xs[k], ys[k]])
         self.pagerank = np.asarray(nx.pagerank(g).values())
+        return self.pagerank
 
     def save_deg2pgrk(self, out_fn, sep=','):
         with open(out_fn, 'r') as fp:

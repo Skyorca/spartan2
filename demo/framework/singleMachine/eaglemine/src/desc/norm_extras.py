@@ -11,6 +11,7 @@
 
 __author__ = 'wenchieh'
 
+# third-party lib
 import numpy as np
 from scipy.stats import mvn
 from scipy.stats import distributions

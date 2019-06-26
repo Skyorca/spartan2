@@ -20,9 +20,12 @@
 
 __author__ = 'wenchieh'
 
+# sys
 import operator
 from itertools import product
 from collections import deque
+
+# third-party lib
 import numpy as np
 import scipy.ndimage.morphology as snm
 
@@ -475,6 +478,7 @@ class LevelTree(object):
 
                 # Execute update tree node with expandable covers
                 for nodeid in child_ids:
+                    if nodeid not in node_expands: continue
                     self.comp_tree[nodeid].hcubes = list(node_expands[nodeid].union(child_cores[nodeid]))
                     expand_queue.append(nodeid)
             # end if (expand for internal tree node)

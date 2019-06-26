@@ -19,9 +19,11 @@
 
 __author__ = 'wenchieh'
 
-
+# third-party lib
 import numpy as np
 from numpy.linalg import det, inv
+
+# project
 from norm_extras import mvnormcdf
 
 class TruncatedGaussian(object):

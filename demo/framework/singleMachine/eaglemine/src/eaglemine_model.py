@@ -1,14 +1,15 @@
 #!/usr/bin/python2.7
 # -*- coding=utf-8 -*-
 
-# EagleMine: Vision-Guided Mining in Large Graphs
+############################################################################
+# Beyond outliers and on to micro-clusters: Vision-guided Anomaly Detection
 # Authors: Wenjie Feng, Shenghua Liu, Christos Faloutsos, Bryan Hooi,
 #                 and Huawei Shen, and Xueqi Cheng
 #
 #  Project: eaglemine
 #      eaglemine_model.py
 #      Version:  1.0
-#      Date: December 17 2017
+#      Date: Dec. 17 2017
 #      Main Contact: Wenchieh Feng (wenchiehfeng.us@gmail.com)
 #
 #      Copyright:
@@ -17,18 +18,23 @@
 #
 #      Created by @wenchieh  on <12/17/2017>
 #
-#      Main contributor:  Wenjie Feng, Shenghua Liu.
-#
+#      Main contributor:  Wenjie Feng.
+###########################################################################
 
 __author__ = 'wenchieh'
 
-
+# sys
+import os
 import operator
-import numpy as np
 from collections import deque
+
+# third-party lib
+import numpy as np
+
+# project
+from core.leveltree import LevelTree
 from utils.loader import Loader
 from utils.mdlbase import MDLBase
-from core.leveltree import LevelTree
 from desc.dtmnorm_describe import DTMNormDescribe
 from desc.truncated_gaussian import TruncatedGaussian
 from desc.gaussian_describe import GaussianDescribe
@@ -36,54 +42,56 @@ from desc.normal_gaussian import NormalGaussian
 from desc.statistic_hypothesis_test import StatisticHypothesisTest
 from desc.statistic_hypothesis_test_truncate import StatisticHypothesisTestTruncate
 
+tiny_blobs = 'tiny_blob2cnt.out'
+contracttree = 'level_tree_contract.out'
+prunetree = 'level_tree_prune.out'
+refinetree = 'level_tree_refine.out'
 
-class EaglemineModel(object):
+
+class EagleMineModel(object):
     _valid_vocabularies_ = ['dtmnorm', 'dmgauss']
 
-    _raw_leveltree_outs_ = 'level_tree.out'
-    _prune_leveltree_outs_ = 'level_tree_prune.out'
-    _expand_leveltree_outs_ = 'level_tree_expand.out'
-
-    def __init__(self, mode=2, mixture_components=2, power_base=2):
+    def __init__(self, mode=2, mix_comps=2, power_base=2):
         self.leveltree = None
         self.describes = None
         self.mode = mode
-        self._hpos = None
+        self._hcel = None
         self._count = None
         self._total = None
         self.shape = None
         self.descvoc = None
-        self._mixcomps = mixture_components
+        self._mixcomps = mix_comps
         self.power_base = power_base
 
-    def set_vocabulary(self, init_parames='dtmnorm'):
-        if init_parames == 'dtmnorm':
+    def set_vocabulary(self, desc_voc='dtmnorm'):
+        # assert desc_voc in self._valid_vocabularies_
+        if desc_voc == 'dtmnorm':
             self.descvoc = {"name": 'dtmnorm', "voc": DTMNormDescribe, "dist": TruncatedGaussian}
-        elif init_parames == 'dmgauss':
+        elif desc_voc == 'dmgauss':
             self.descvoc = {"name": 'dmgauss', "voc": GaussianDescribe, "dist": NormalGaussian}
         else:
             raise ValueError("Unimplemented initialization method {}, "
-                             "valid vocabularies {}".format(init_parames, self._valid_vocabularies_))
+                             "valid vocabularies {}".format(desc_voc, self._valid_vocabularies_))
 
     def load_histogram(self, infn_hist):
         loader = Loader()
         shape, ticks, hist_arr = loader.load_histogram(infn_hist)
-        self._hpos = hist_arr[:, :-1]
+        self._hcel = hist_arr[:, :-1]
         self._count = hist_arr[:, -1]
-        n_pos, n_dim = self._hpos.shape
+        n_cel, n_dim = self._hcel.shape
         if n_dim != self.mode:
             raise ValueError("Input histogram dimension does match with the initial dimension.")
-        self._total = n_pos
+        self._total = n_cel
         self.shape = shape
 
-    def set_histogram(self, pos2cnt):
-        self._hpos = np.asarray(pos2cnt[:, :-1])
-        self._count = np.asarray(pos2cnt[:, -1])
-        n_pos, n_dim = self._hpos.shape
+    def set_histogram(self, hcel2cnt):
+        self._hcel = np.asarray(hcel2cnt[:, :-1])
+        self._count = np.asarray(hcel2cnt[:, -1])
+        n_pos, n_dim = self._hcel.shape
         if n_dim != self.mode:
             raise ValueError("Input histogram dimension does match with the initial dimension.")
         self._total = n_pos
-        self.shape = np.max(self._hpos, axis=0)
+        self.shape = np.max(self._hcel, axis=0)
 
     def load_leveltree(self, infn, sep=',', verbose=True):
         self.leveltree = LevelTree()
@@ -91,9 +99,9 @@ class EaglemineModel(object):
 
     def load_describes(self, infn, sep=';', P=2, verbose=True):
         self.describes = dict()
-        hpos2cnt = dict()
+        hcel2cnt = dict()
         for k in range(self._total):
-            hpos2cnt[tuple(self._hpos[k])] = self._count[k]
+            hcel2cnt[tuple(self._hcel[k])] = self._count[k]
 
         with open(infn, 'r') as ifp:
             for line in ifp:
@@ -104,8 +112,8 @@ class EaglemineModel(object):
                 desc.load(line[splits+1:])
                 tree_node = self.leveltree.get_node(node_id)
                 node_counts = list()
-                for hcb in tree_node.get_covers():
-                    node_counts.append(hpos2cnt.get(tuple(hcb)))
+                for hc in tree_node.get_covers():
+                    node_counts.append(hcel2cnt.get(tuple(hc)))
                 values = np.array(node_counts)
                 values = np.log(values + 1) / np.log(P)
                 desc.set_data(tree_node.get_covers(), values)
@@ -115,35 +123,69 @@ class EaglemineModel(object):
         if verbose:
             print('load describe done!')
 
-    def leveltree_build(self, outfd, step=0.2, prune_alpha=0.95,
-                        min_level=1.0, max_level=None, verbose=True):
+    def dump(self):
+        print("Information: ")
+        print("#mode: {}, input-shape: {}".format(self.mode, self.shape))
+        print("#non-zeros: {}, #totals: {}".format(len(self._hcel), np.sum(self._count)))
+        print("Level-tree information:")
+        self.leveltree.dump()
+        print("Leaves describe information:")
+        for id, desc in self.describes.items():
+            print("{}: {}".format(id, str(desc)))
+
+        print("done!\n")
+
+    def save(self, outfd, suffix=''):
+        describe_outfn = 'describe%s.out' % suffix
+        with open(os.path.join(outfd, describe_outfn), 'w') as ofp:
+            desc_ids = sorted(self.describes.keys())
+            for id in desc_ids:
+                desc = self.describes[id]
+                line = str(id) + ";" + str(desc)
+                ofp.writelines(line + '\n')
+            ofp.close()
+        # self.leveltree.save_leveltree(outfd+'level_tree_expand-00.out')
+        # print("save done!\n")
+
+    def leveltree_build(self, outfd, step=0.2, prune_alpha=0.95, min_level=1.0, max_level=None, verbose=True):
         values = np.log2(1.0 + np.asarray(self._count, float))
         if max_level is None or max_level < min_level or max_level > np.max(values):
             max_level = np.max(values)
 
+        print("\n========== ")
+        print("Construct raw-tree.")
         self.leveltree = LevelTree()
-        self.leveltree.build_level_tree(self._hpos, values, min_level, max_level, step,
-                                        verbose=verbose, outfn = outfd+'tiny_blob2cnt.out')
+        self.leveltree.build_level_tree(self._hcel, values, min_level, max_level, step,
+                                        verbose=verbose, outfn = os.path.join(outfd, tiny_blobs))
+        print("\n========== ")
+        print("Refine tree structure.")
+        print("\n+++++++++ ")
+        print("a). tree contract")
         self.leveltree.tree_contract(verbose=verbose)
         if verbose:
-            print("Info: Raw level-tree:")
+            print("Info: Contract level-tree:")
             self.leveltree.dump()
+        print("\n+++++++++ ")
+        print("b). tree prune")
         self.leveltree.tree_prune(alpha=prune_alpha, verbose=verbose)
         if verbose:
             print("Info: Pruned level-tree:")
             self.leveltree.dump()
+        print("\n+++++++++ ")
+        print("c). tree node expand")
         self.leveltree.tree_node_expand(verbose)
-        self.leveltree.save_leveltree(outfd + self._expand_leveltree_outs_)
+        self.leveltree.save_leveltree(os.path.join(outfd, refinetree))
         if verbose:
             print("Info: Expanded level-tree:")
             self.leveltree.dump()
+        print("\ndone")
 
-    def _describe_singular_check_(self, hcubes):
-        hcubes = np.asarray(hcubes)
-        ndims = hcubes.ndim
+    def _describe_singular_check_(self, hcels):
+        hcels = np.asarray(hcels)
+        ndims = hcels.ndim
         sing_dims = list()
         for dm in range(ndims):
-            if len(np.unique(hcubes[:, dm])) <= 1:
+            if len(np.unique(hcels[:, dm])) <= 1:
                 sing_dims.append(dm)
 
         if len(sing_dims) > 0:
@@ -152,17 +194,17 @@ class EaglemineModel(object):
 
     def describe_all(self):
         self.describes = dict()
-        hpos2cnt = dict()
+        hcel2cnt = dict()
         for k in range(self._total):
-            hpos2cnt[tuple(self._hpos[k])] = self._count[k]
+            hcel2cnt[tuple(self._hcel[k])] = self._count[k]
 
         # tree nodes will be fitted with mixture distribution
         heavynode2level = self.leveltree.get_heavynodes()
         nodes = self.leveltree.get_nodes()  # self.leveltree.get_leaves()
         for ndid in nodes:
             tree_node = self.leveltree.get_node(ndid)
-            hcubes = tree_node.get_covers()
-            node_counts = [hpos2cnt.get(tuple(hcb)) for hcb in hcubes]
+            hcels = tree_node.get_covers()
+            node_counts = [hcel2cnt.get(tuple(hc)) for hc in hcels]
             is_mix = ndid in heavynode2level.keys()
 
             ## logP_count
@@ -174,37 +216,12 @@ class EaglemineModel(object):
             if self.descvoc["name"] == 'dtmnorm':
                 desc.set_bounds()
 
-            self._describe_singular_check_(hcubes)
-            desc.fit(hcubes, values)
+            self._describe_singular_check_(hcels)
+            desc.fit(hcels, values)
             self.describes[ndid] = desc
 
-    def dump(self):
-        print("Information: ")
-        print("#mode: {}, input-shape: {}".format(self.mode, self.shape))
-        print("#non-zeros: {}, #totals: {}".format(len(self._hpos), np.sum(self._count)))
-        print("Level-tree information:")
-        self.leveltree.dump()
-        print("Leaves describe information:")
-        for id, desc in self.describes.items():
-            print("{}: {}".format(id, str(desc)))
-
-        print("done!")
-
-    def save(self, outfd, suffix=''):
-        describe_outfn = 'describe%s.out' % suffix
-        # self.leveltree.save_leveltree(outfd+'level_tree_expand-00.out')
-        with open(outfd + describe_outfn, 'w') as ofp:
-            desc_ids = sorted(self.describes.keys())
-            for id in desc_ids:
-                desc = self.describes[id]
-                line = str(id) + ";" + str(desc)
-                ofp.writelines(line + '\n')
-            ofp.close()
-        print("save done!")
-
-
-    def _model_hcubes_prob_(self, pos_left, pos_right, paras, is_mix):
-        npts = len(pos_left)
+    def _model_hcels_prob_(self, hcel_left, hcel_right, paras, is_mix):
+        npts = len(hcel_left)
         mus, covs, weights = paras["mus"], paras["covs"], paras["weights"]
         probs = None
         if is_mix:
@@ -222,7 +239,7 @@ class EaglemineModel(object):
 
             comp_probs = list()
             for k in range(npts):
-                ps = [mix_dists[i].range_cdf(pos_left[k, :], pos_right[k, :]) for i in range(nmix)]
+                ps = [mix_dists[i].range_cdf(hcel_left[k, :], hcel_right[k, :]) for i in range(nmix)]
                 comp_probs.append(ps)
             probs = np.array(comp_probs)
         else:
@@ -233,17 +250,17 @@ class EaglemineModel(object):
             else:
                 dist = self.descvoc["dist"]()
             dist.set_para(mus[0], covs[0])
-            probs = np.array([dist.range_cdf(pos_left[k, :], pos_right[k, :]) for k in range(npts)])
+            probs = np.array([dist.range_cdf(hcel_left[k, :], hcel_right[k, :]) for k in range(npts)])
 
         return probs
 
     def search(self, min_pts=20, strictness=4, verbose=True):
         search_tree = dict()
         blob_nodes = list()
-        hpos2cnt = dict()
+        hcel2cnt = dict()
         min_pts = np.min([min_pts, int(np.mean(self._count))])
         for k in range(self._total):
-            hpos2cnt[tuple(self._hpos[k])] = self._count[k]
+            hcel2cnt[tuple(self._hcel[k])] = self._count[k]
 
         heavynode2level = self.leveltree.get_heavynodes()
 
@@ -265,8 +282,8 @@ class EaglemineModel(object):
         while len(Q) > 0:
             ndid = Q.popleft()
             tree_node = self.leveltree.get_node(ndid)
-            hcubes = np.array(tree_node.get_covers())
-            node_counts = [hpos2cnt.get(tuple(hcb)) for hcb in hcubes]
+            hcels = np.array(tree_node.get_covers())
+            node_counts = [hcel2cnt.get(tuple(hc)) for hc in hcels]
 
             if np.max(node_counts) < min_pts:
                 blob_nodes.append(tree_node)
@@ -277,44 +294,43 @@ class EaglemineModel(object):
             values = np.array(node_counts)
             values = np.log(values + 1) / np.log(self.power_base)
 
-            self._describe_singular_check_(hcubes)
+            self._describe_singular_check_(hcels)
             comps = self._mixcomps if is_mix else 1
             if ndid not in self.describes:
                 desc = self.descvoc["voc"](self.mode, is_mix, comps)
                 if self.descvoc["name"] == 'dtmnorm':
                     desc.set_bounds()
-                desc.fit(hcubes, values)
+                desc.fit(hcels, values)
                 self.describes[ndid] = desc
             else:
                 desc = self.describes[ndid]
-                desc.data, desc.values = hcubes, values
+                desc.data, desc.values = hcels, values
 
-            hcubes_prob = None
+            hcels_prob = None
             if is_mix:
-                hcubes_prob = self._model_hcubes_prob_(hcubes, hcubes + 1, desc.paras, is_mix)
+                hcels_prob = self._model_hcels_prob_(hcels, hcels + 1, desc.paras, is_mix)
 
-            weights = np.ones(len(hcubes), int) # values #
-
+            weights = values #np.ones(len(hcels), int) #
             gaussian = False
             if self.descvoc['name'] == 'dmgauss':
-                gaussian = stat_tester.apply(hcubes, weights, hcubes_prob, desc.paras, is_mix)
+                gaussian = stat_tester.apply(hcels, weights, hcels_prob, desc.paras, is_mix)
             elif self.descvoc['name'] == 'dtmnorm':
                 lower_bnd, _ = desc.get_bounds()
-                gaussian = stat_tester.apply(hcubes, weights, hcubes_prob, desc.paras, is_mix, lower_bnd)
+                gaussian = stat_tester.apply(hcels, weights, hcels_prob, desc.paras, is_mix, lower_bnd)
 
             if gaussian:
                 search_tree[ndid] = desc
-                # if verbose:
-                #     print("Info: island: {} hypothesis * Accept. ^~^".format(ndid))
+                if verbose:
+                    print("Info: island: {} hypothesis * Accept. ^~^".format(ndid))
             else:
                 if tree_node.child is not None:
                     Q.extend(tree_node.child)
-                    # if verbose:
-                    #     print("Info island: {} hypothesis & Rejected. >_<".format(ndid))
+                    if verbose:
+                        print("Info island: {} hypothesis & Rejected. >_<".format(ndid))
                 else:
                     search_tree[ndid] = desc
-                    # if verbose:
-                    #     print("Info: island: {} hypothesis $ pseudo-Accept. ^..^".format(ndid))
+                    if verbose:
+                        print("Info: island: {} hypothesis $ pseudo-Accept. ^..^".format(ndid))
 
         self.describes = search_tree
 
@@ -358,16 +374,16 @@ class EaglemineModel(object):
     def post_stitch(self, strictness=4, verbose=True):
         optimals = list()
         mixturec, singlesc = None, dict()
-        hpos2cnt = dict()
+        hcel2cnt = dict()
         for k in range(self._total):
-            hpos2cnt[tuple(self._hpos[k])] = self._count[k]
+            hcel2cnt[tuple(self._hcel[k])] = self._count[k]
 
         ider = -1
         for cid, desc in self.describes.items():
             if cid > ider: ider = cid
             if desc.is_mix: mixturec = cid
             else:
-                npts = np.sum([hpos2cnt.get(tuple(pos)) for pos in desc.data])
+                npts = np.sum([hcel2cnt.get(tuple(pos)) for pos in desc.data])
                 singlesc[cid] = {"id": cid, "desc": desc, "cs_id": [cid], "islnds": [cid], "npts": npts}
                 optimals.append(cid)
 
@@ -396,7 +412,7 @@ class EaglemineModel(object):
                     merge_tuple = (ci.get("id"), cj.get("id"))
                     merge_id = tested_cands.get(merge_tuple, None)
                     if verbose:
-                        print merge_tuple
+                        print(merge_tuple)
                     if merge_id is not None:
                         if merge_id != -1:
                             candidates.append(merge_id)
@@ -415,21 +431,21 @@ class EaglemineModel(object):
                             print("Info: test new merging node: {} ({}, {})".format(
                                 merge_tuple, ci.get("cs_id"), cj.get("cs_id")))
 
-                        merged_hcubes = np.vstack([desci.data, descj.data])
+                        merged_hcels = np.vstack([desci.data, descj.data])
                         merged_values = np.hstack([desci.values, descj.values])
                         desc = self.descvoc["voc"](self.mode, False, 1)
                         if self.descvoc["name"] == 'dtmnorm':
                             desc.set_bounds()
-                        desc.fit(merged_hcubes, merged_values)
+                        desc.fit(merged_hcels, merged_values)
 
-                        weights = np.ones(len(merged_hcubes), int) # merged_values #
+                        weights = np.ones(len(merged_hcels), int) # merged_values #
 
                         gaussian = False
                         if self.descvoc['name'] == 'dmgauss':
-                            gaussian = stat_tester.apply(merged_hcubes, weights, None, desc.paras, False)
+                            gaussian = stat_tester.apply(merged_hcels, weights, None, desc.paras, False)
                         elif self.descvoc['name'] == 'dtmnorm':
                             lower_bnd, _ = desc.get_bounds()
-                            gaussian = stat_tester.apply(merged_hcubes, weights, None, desc.paras, False, lower_bnd)
+                            gaussian = stat_tester.apply(merged_hcels, weights, None, desc.paras, False, lower_bnd)
 
                         if gaussian:
                             ider += 1
@@ -478,9 +494,9 @@ class EaglemineModel(object):
             desc_stitch[cid] = c_nd.get("desc")
         self.describes = desc_stitch
 
-    def _measure_model_mdl_(self, hcubes, counts, hcubes_label, hcubes_prob, outlier_marker=-1):
+    def _measure_model_mdl_(self, hcels, counts, hcels_label, hcels_prob, outlier_marker=-1):
         counts = np.asarray(counts)
-        hcubes_label = np.asarray(hcubes_label)
+        hcels_label = np.asarray(hcels_label)
 
         descs = self.describes.values()
         N_cls = len(descs)
@@ -490,9 +506,9 @@ class EaglemineModel(object):
         L_paras, L_assign, L_nis, L_error = 0.0, 0.0, 0.0, 0.0
         for k in range(N_cls):
             lb = k
-            index = np.where(hcubes_label == lb)
-            k_hcubes, k_cnts = hcubes[index], counts[index]
-            k_probs = hcubes_prob[index]
+            index = np.where(hcels_label == lb)
+            k_hcels, k_cnts = hcels[index], counts[index]
+            k_probs = hcels_prob[index]
 
             # model error code-length
             knis = np.sum(descs[k].values)
@@ -507,14 +523,13 @@ class EaglemineModel(object):
             L_nis += mdl.float_mdl(knis)  # for encoding #pts of this cluster
 
         L_outs = 0.0
-        outs_index = np.where(hcubes_label == outlier_marker)
-        outs_hcubs, outs_vals = hcubes[outs_index], counts[outs_index]
+        outs_index = np.where(hcels_label == outlier_marker)
+        outs_hcels, outs_vals = hcels[outs_index], counts[outs_index]
         L_outs += mdl.seq_diff_mdl(np.zeros_like(outs_vals, int), outs_vals)
         L_shape = np.sum([mdl.integer_mdl(dm) for dm in self.shape])
 
         C = L_clusters + L_assign + L_shape + L_paras + L_nis + L_outs + L_error
         return C
-
 
     def _smooth_entropy_(self, ps, qs, weights, smoother=1e-15):
         n = len(ps)
@@ -524,15 +539,15 @@ class EaglemineModel(object):
                  if qs[i] != 0 else 0 for i in range(n) ]
         return np.sum(w_en)
 
-    def _measure_suspicious_(self, hcubes, values):
+    def _measure_suspicious_(self, hcels, values):
         majority_normal = None
         cls_id2prob = dict()
         for id, desc in self.describes.items():
-            hcb_prob = self._model_hcubes_prob_(hcubes, hcubes + 1, desc.paras, desc.is_mix)
+            hcel_prob = self._model_hcels_prob_(hcels, hcels + 1, desc.paras, desc.is_mix)
             if desc.is_mix:
                 majority_normal = id
-                hcb_prob = np.sum(hcb_prob * desc.paras['weights'], axis=1)
-            cls_id2prob[id] = hcb_prob
+                hcel_prob = np.sum(hcel_prob * desc.paras['weights'], axis=1)
+            cls_id2prob[id] = hcel_prob
 
         dists = dict()
         for id, probs in cls_id2prob.items():
@@ -540,93 +555,90 @@ class EaglemineModel(object):
 
         return sorted(dists.items(), key=operator.itemgetter(1), reverse=True)
 
-    def _hcubes_labeling_(self, hcubes, outliers_marker=-1, strictness=4):
+    def _hcels_labeling_(self, hcels, outliers_marker=-1, strictness=4):
         criticals = [1e-1, 5e-2, 1e-2, 1e-3, 1e-4, 1e-5]
-        hcubes = np.asarray(hcubes)
-        hcube_clsprob = list()
-        hcube_labels = list()
+        hcels = np.asarray(hcels)
+        hcel_clsprob = list()
+        hcel_labs = list()
 
         descs = self.describes.values()
         mixId = -1
         for k in range(len(descs)):
             desc = descs[k]
-            clsprob = self._model_hcubes_prob_(hcubes, hcubes + 1, desc.paras, desc.is_mix)
+            clsprob = self._model_hcels_prob_(hcels, hcels + 1, desc.paras, desc.is_mix)
             if desc.is_mix:
                 mixId = k
                 clsprob = np.sum(clsprob * desc.paras['weights'], axis = 1)
-            hcube_clsprob.append(clsprob)
-        hcube_clsprob = np.array(hcube_clsprob).T
+            hcel_clsprob.append(clsprob)
+        hcel_clsprob = np.array(hcel_clsprob).T
 
         for k in range(self._total):
-            prob, cls = np.max(hcube_clsprob[k, :]), np.argmax(hcube_clsprob[k, :])
+            prob, cls = np.max(hcel_clsprob[k, :]), np.argmax(hcel_clsprob[k, :])
             if prob <= criticals[strictness]:
                 label = outliers_marker
             else:
                 label = cls
 
-            hcube_labels.append(label)
+            hcel_labs.append(label)
 
-        probs = np.max(hcube_clsprob, axis=1)
-        return hcube_labels, probs
+        probs = np.max(hcel_clsprob, axis=1)
+        return hcel_labs, probs
 
     def cluster_histogram(self, outfn=None, strictness=4, verbose=True):
         outliers_marker = -1
-        hcubes_label, hcubes_prob = self._hcubes_labeling_(self._hpos, outliers_marker, strictness)
+        hcels_label, hcels_prob = self._hcels_labeling_(self._hcel, outliers_marker, strictness)
         if outfn is not None:
-            np.savetxt(outfn, np.vstack((self._hpos.T, hcubes_label)).T, '%i', delimiter=',',
-                       header='#hcube: {}, #label: {}'.format(self._total, len(np.unique(hcubes_label))))
+            np.savetxt(outfn, np.vstack((self._hcel.T, hcels_label)).T, '%i', delimiter=',',
+                       header='#hcel: {}, #label: {}'.format(self._total, len(np.unique(hcels_label))))
 
-        mdls = self._measure_model_mdl_(self._hpos, self._count, hcubes_label, hcubes_prob, outliers_marker)
+        mdls = self._measure_model_mdl_(self._hcel, self._count, hcels_label, hcels_prob, outliers_marker)
         # suspicious = self._measure_suspicious_(self._hpos, np.log2(1 + self._count))
 
         if verbose:
             print("Graph Model Description Length: {}".format(mdls))
             # print("Island suspicious orders: {}".format(suspicious))
 
-        return self._hpos, hcubes_label, mdls
+        return self._hcel, hcels_label, mdls
 
-
-    def graph_node_cluster(self, node2hpos_infn, nodelabel_outfn,
-                           hcubelabel_outfn=None, strictness=4, verbose=True):
+    def graph_node_cluster(self, node2hcel_infn, node2lab_outfn, hcel2lab_outfn=None, strictness=4, verbose=True):
         loader = Loader()
 
-        ptsidx_pos = loader.load_pt2pos(node2hpos_infn)
+        ndidx_hcel = loader.load_pt2pos(node2hcel_infn)
         outliers_marker = -1
-        hcbs_labels, _ = self._hcubes_labeling_(self._hpos, outliers_marker, strictness)
-        hcube2label = dict(zip(map(tuple, self._hpos), hcbs_labels))
+        hcls_labs, _ = self._hcels_labeling_(self._hcel, outliers_marker, strictness)
+        hcel2lab = dict(zip(map(tuple, self._hcel), hcls_labs))
 
-        if hcubelabel_outfn is not None:
-            np.savetxt(hcubelabel_outfn, np.vstack((self._hpos.T, hcbs_labels)).T, '%i', delimiter=',',
-                       header='#hcube: {}, #label: {}'.format(self._total, len(np.unique(hcbs_labels))))
+        if hcel2lab_outfn is not None:
+            np.savetxt(hcel2lab_outfn, np.vstack((self._hcel.T, hcls_labs)).T, '%i', delimiter=',',
+                       header='#hcel: {}, #label: {}'.format(self._total, len(np.unique(hcls_labs))))
 
-        with open(nodelabel_outfn, 'w') as ofp:
-            ofp.writelines("# #pt: {}, #label: {}\n".format(len(ptsidx_pos), len(np.unique(hcbs_labels))))
-            for k in range(len(ptsidx_pos)):
-                ptidx, pos = ptsidx_pos[k, 0], tuple(ptsidx_pos[k, 1:])
-                ptlab = hcube2label.get(pos, -1)
-                ofp.writelines("{},{}\n".format(ptidx, ptlab))
+        with open(node2lab_outfn, 'w') as ofp:
+            ofp.writelines("# #pt: {}, #label: {}\n".format(len(ndidx_hcel), len(np.unique(hcls_labs))))
+            for k in range(len(ndidx_hcel)):
+                ndidx, pos = ndidx_hcel[k, 0], tuple(ndidx_hcel[k, 1:])
+                ndlab = hcel2lab.get(pos, -1)
+                ofp.writelines("{},{}\n".format(ndidx, ndlab))
             ofp.close()
 
         if verbose:
             print("clustering done!")
 
-
-    def cluster_weighted_suspicious(self, hcube_weights, strictness=4, verbose=True):
+    def cluster_weighted_suspicious(self, hcel_weights, strictness=4, verbose=True):
         outliers_marker = -1
-        hcubes_label, hcubes_prob = self._hcubes_labeling_(self._hpos, outliers_marker, strictness)
-        _susp_ = self._measure_suspicious_(self._hpos, np.log2(1 + self._count))
+        hcels_lab, hcels_prob = self._hcels_labeling_(self._hcel, outliers_marker, strictness)
+        _susp_ = self._measure_suspicious_(self._hcel, np.log2(1 + self._count))
 
         cls2susp = dict(_susp_)
         cls2wtsusp = dict()
 
-        hcubes_label = np.asarray(hcubes_label)
-        clsid2labels = dict(zip(self.describes.keys(), range(len(self.describes.values()))))
+        hcels_lab = np.asarray(hcels_lab)
+        clsid2labs = dict(zip(self.describes.keys(), range(len(self.describes.values()))))
         for clsid, desc in self.describes.items():
-            lb = clsid2labels[clsid]
-            lb_hcubes_index = np.arange(len(hcubes_label))[hcubes_label == lb]
+            lb = clsid2labs[clsid]
+            lb_hcels_idx = np.arange(len(hcels_lab))[hcels_lab == lb]
             cls_wt, npts = 0, 0
-            for hidx in lb_hcubes_index:
-                cls_wt += hcube_weights[hidx] * self._count[hidx]
+            for hidx in lb_hcels_idx:
+                cls_wt += hcel_weights[hidx] * self._count[hidx]
                 npts += self._count[hidx]
             cls_wt /= 1.0 * npts
             cls2wtsusp[clsid] = cls2susp[clsid] * np.log(cls_wt)
@@ -634,8 +646,10 @@ class EaglemineModel(object):
         sorted_wtsusp = sorted(cls2wtsusp.items(), key=operator.itemgetter(1), reverse=True)
 
         if verbose:
-            print("KL-divergence based suspicious: {}".format(_susp_))
-            print("Weighted suspicious orders: {}".format(sorted_wtsusp))
+            _suspstr_ = ", ".join(["(%d, %.2f)"%(d[0], d[1]) for d in _susp_])
+            print("kl-divergence based suspicious: [{}]".format(_suspstr_))
+            _wtsuspstr_ = ", ".join(["(%d, %.2f)"%(d[0], d[1]) for d in sorted_wtsusp])
+            print("weighted suspicious orders: [{}]".format(_wtsuspstr_))
 
         return sorted_wtsusp
 

@@ -19,16 +19,20 @@
 # 
 __author__ = 'wenchieh'
 
-
+# sys
 import collections
+
+# third-party lib
 import numpy as np
 from numpy import inf
 from numpy.linalg import det
 import scipy.optimize as opt
 from statsmodels.stats.weightstats import DescrStatsW
-from norm_extras import mvnormcdf
 from sklearn import cluster
 from pomegranate import *
+
+# project
+from norm_extras import mvnormcdf
 
 
 class DTMNorm(object):
@@ -122,7 +126,10 @@ class DTMNorm(object):
         for i in range(N):
             numerator = np.max([0, mvnormcdf(pos_right[i, :], mus[0], cov, pos_left[i, :])])
             P_pos = numerator / normalizer
-            res += weights[i] * np.log(P_pos)
+            if P_pos > 0:
+                res += weights[i] * np.log(P_pos)
+            else:
+                res += -1.0 * np.NaN
 
         if debug_info is not None:
             debug_info.append(-res)
@@ -167,7 +174,10 @@ class DTMNorm(object):
             ps_pos = [np.max([1e-10, mvnormcdf(pos_right[i, :], mus[k], covs[k], pos_left[i, :])])
                       for k in range(n_components)]
             prob = np.sum(ps_pos * comp_ws)
-            res += weights[i] * np.log(prob)
+            if prob > 0:
+                res += weights[i] * np.log(prob)
+            else:
+                res += -1.0 * np.NaN
 
         if debug_info is not None:
             debug_info.append(-res)

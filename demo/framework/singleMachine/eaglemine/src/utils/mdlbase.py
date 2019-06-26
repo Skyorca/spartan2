@@ -19,7 +19,7 @@
 
 __author__ = 'wenchieh'
 
-
+# third-party lib
 import numpy as np
 
 class MDLBase(object):

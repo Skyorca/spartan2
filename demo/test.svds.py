@@ -13,10 +13,10 @@ def test():
     data = st.loadTensor(name = "example", path = "inputData/", col_ids = ["uid", "oid", "rating"], col_types = [int, int, int])
 
     # create a eigen decomposition model
-    edmodel = st.eigen_decompose.create(data, "eigen decomposition")
+    edmodel = st.eigen_decompose.create(data, st.ed_policy.SVDS, "my_svds_model")
 
     # run the model
-    edmodel.run(st.ed_policy.SVDS, k=10)
+    edmodel.run(k=10)
 
     # show the result
     edmodel.showResults()

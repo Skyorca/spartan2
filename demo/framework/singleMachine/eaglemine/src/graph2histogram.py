@@ -65,22 +65,19 @@ def histogram_view(histogram_infn, xlabel, ylabel, outfn=None):
     print('Histogram view done!')
 
 
-
-
 if __name__ == '__main__':
-    path = '../example/'
-    outpath = '../output/'
-    infn_graph_feature = 'outd2hub_feature'
-    outfn_histogram = 'histogram.out'
-    outfn_pts2pos = 'point2pos.out'
-    outfn_hpos2avgfeat = 'hpos2avgfeat.out'
-    outfn_heatmap = 'heatmap.png'
-    axis_labels = ["Hubness", "Out-degree"]
+    ins_gfeat = '../example/outd2hub_feature'
+    outs = '../output/'
+    outs_hist = 'histogram.out'
+    ofn_node2hcel = 'node2hcel.out'
+    ofn_hcel2avgfeat = 'hcel2avgfeat.out'
+    ofn_heatmap = 'heatmap.png'
+    x_lab, y_lab = ["Hubness", "Out-degree"]
               # ["Authoritativeness", "In-degree"], ["PageRank", "Degree"], ["Degree", "Triangles"]
 
     mode = 2
     loader = Loader()
-    m, _, gfts = loader.load_features(path+infn_graph_feature, float)
-    histogram_construct(gfts[:m], 1, outpath+outfn_histogram, outpath+outfn_pts2pos, outpath+outfn_hpos2avgfeat, mode)
-    histogram_view(outpath+outfn_histogram, axis_labels[0], axis_labels[1], outpath+outfn_heatmap)
+    m, _, gfts = loader.load_features(ins_gfeat, float)
+    histogram_construct(gfts[:m], 1, outs + outs_hist, outs + ofn_node2hcel, outs + ofn_hcel2avgfeat, mode)
+    histogram_view(outs + outs_hist, x_lab, y_lab, outs + ofn_heatmap)
 

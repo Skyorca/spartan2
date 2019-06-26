@@ -19,8 +19,10 @@
 
 __author__ = 'wenchieh'
 
-
+# third-party lib
 import numpy as np
+
+# project
 from discrete_gaussian import DiscreteGaussian
 
 
