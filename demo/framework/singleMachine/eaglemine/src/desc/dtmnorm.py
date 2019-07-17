@@ -183,7 +183,7 @@ class DTMNorm(object):
         centers = (left + right) / 2.0
         init_gmm = GeneralMixtureModel.from_samples(MultivariateGaussianDistribution,
                                                    n_components=n_components, X=centers, weights=weights,
-                                                   stop_threshold=0.01, n_jobs=2)
+                                                   stop_threshold=0.01) #, n_jobs=2)
         
         init_mus, init_covs = list(), list()
         init_comp_ws = np.array(init_gmm.weights)
