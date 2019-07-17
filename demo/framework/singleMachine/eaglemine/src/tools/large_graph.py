@@ -14,14 +14,16 @@
 #
 #    large_graph.py
 #      Version:  1.0
-#      Goal: Class / Subroutine / Test script
+#      Goal: Subroutine script
 #      Created by @wenchieh  on <12/25/2017>
 #
 
 __author__ = 'wenchieh'
 
-
+# sys
 import time
+
+# third-party lib
 import numpy as np
 import graphlab as gl
 
@@ -93,7 +95,7 @@ def large_graph_features(users_sf, rels_sf, outfn, nodename, verbose=False):
     if verbose:  print("Logging: " + outputStr)
 
 
-def test_main():
+if __name__ == '__main__':
     inpath = '../example/'
     relations_infn = 'example.graph'
     outpath = '../output/'
@@ -104,7 +106,3 @@ def test_main():
     uids = np.unique(rels_sf.to_numpy())
     users_sf = gl.SFrame({"nodeId": uids})
     large_graph_features(users_sf, rels_sf, outpath + outfn, 'nodeId')
-
-
-if __name__ == '__main__':
-    test_main()

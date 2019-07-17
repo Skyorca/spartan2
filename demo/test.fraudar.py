@@ -10,13 +10,13 @@ def test():
     st.config(st.engine.SINGLEMACHINE)
 
     # load graph data
-    data = st.loadTensor(name = "example", path = "inputData/", col_ids = ["uid", "oid", "rating"],  col_types = [int, int, int])
+    data = st.loadTensor(name = "example", path = "inputData/", col_ids = ["uid", "oid", "rating"], col_types = [int, int, int])
 
     # create a anomaly detection model
-    admodel = st.anomaly_detection.create(data, "anomaly detection")
+    admodel = st.anomaly_detection.create(data, st.ad_policy.FRAUDAR, "my_holoscope_model")
 
     # run the model
-    admodel.run(st.ad_policy.FRAUDAR)
+    admodel.run()
 
     # show the results
     admodel.showResults()

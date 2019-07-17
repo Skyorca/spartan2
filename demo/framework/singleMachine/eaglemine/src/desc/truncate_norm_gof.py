@@ -20,14 +20,16 @@
 __author__ = 'wenchieh'
 
 
+# sys
 import errno
-import numpy as np
 from collections import Counter
-from scipy.stats import norm, uniform
-import scipy.optimize as opt
-
 from multiprocessing import Process
 from multiprocessing.queues import Queue
+
+# third-party lib
+import numpy as np
+from scipy.stats import norm, uniform
+import scipy.optimize as opt
 
 
 def _ad_alters_check(alternative):
@@ -141,7 +143,6 @@ def retry_on_eintr(function, *args, **kw):
                 raise
 
 
-
 class RetryQueue(Queue):
     def get(self, block=True, timeout=None):
         return retry_on_eintr(Queue.get, self, block, timeout)
@@ -157,15 +158,20 @@ class TruncatedNormalGoF(object):
     def __init__(self, n_jobs=1):
         self._n_jobs_ = n_jobs
 
-    def _optimize_mle_(self, init_pram, xs, weights, H):
+    def _optimize_mle_(self, init_pram, xs, weights, H, epsilon=1e-10):
         n = len(xs)
         mean, std =  init_pram[0], init_pram[1]
 
-        dens = 1 - norm.cdf(H, loc=mean, scale=std)
+        dens = 1 - norm.cdf(H, loc=mean, scale=std) + epsilon
         numerator = norm.pdf(xs, loc=mean, scale=std)
         xs_pdf = numerator / dens
         wtxs_pdf = weights * xs_pdf
-        res = -1.0 * np.sum(np.log(wtxs_pdf[xs > H]))
+        val = np.asarray(wtxs_pdf[xs > H])
+        if val.all() > 0:
+            res = -1.0 * np.sum(np.log(val))
+        else:
+            res = -1.0 * np.NaN
+
         if np.isinf(res):
             res = - np.log(np.finfo('float64').resolution) * n
 

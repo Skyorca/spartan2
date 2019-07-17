@@ -12,14 +12,24 @@ def test():
     # load graph data
     data = st.loadTensor(name = "example_graph", path = "inputData/", col_ids = ["uid", "oid", "rating"],  col_types = [int, int, int])
 
+    # count degree
+    Du, Dv = st.bidegree(data)
+    # D = st.degree(data)
+
     # create a anomaly detection model
-    admodel = st.anomaly_detection.create(data, "anomaly detection")
+    emmodel = st.anomaly_detection.create(data, st.ad_policy.EAGLEMINE, "my_eaglemine_model")
+    emmodel.setbipartite(True)
+    
+    # run the eaglemine model
+    emmodel.run(emmodel.U, Du)
+    emmodel.run(emmodel.V, Dv)
 
-    # run the model
-    admodel.run(st.ad_policy.EAGLEMINE, "outd2hub")
+    A, B = emmodel.nodes(n=0)
 
-    # show the results
-    admodel.showResults()
+    A = [0, 1, 2, 3]
+    B = [19, 32, 201]
+    g = st.subgraph(data, A, B)
+    # g = st.subgraph(data, A)
 
 
 if __name__ == "__main__":

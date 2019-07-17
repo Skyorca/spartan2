@@ -18,7 +18,7 @@
 # 
 __author__ = 'wenchieh'
 
-
+# third-party lib
 import numpy as np
 from pomegranate import *
 from scipy.stats import multivariate_normal

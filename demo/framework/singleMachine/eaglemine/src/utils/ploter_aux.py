@@ -3,6 +3,7 @@
 
 #  Project: eaglemine
 #    ploter_aux.py
+#		  auxiliary tools for visualization 
 #      Version:  1.0
 #      Goal: Subroutine script
 #      Created by @wenchieh  on <11/28/2017>
@@ -10,10 +11,13 @@
 
 __author__ = 'wenchieh'
 
+import warnings
+warnings.filterwarnings("ignore")
+
+# third-party lib
 import numpy as np
 from numpy.linalg import eig
 import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pylab as plt
 from matplotlib.patches import Ellipse
 from matplotlib.colors import LogNorm

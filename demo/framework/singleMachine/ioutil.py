@@ -16,8 +16,7 @@ def loadedgelist2sm(edgelist, mtype=csc_matrix, dtype=int, delimiter=' ',
         offset = 0
     else:
         offset = -1
-    for line in edgelist:
-        coords=line.strip().split(delimiter)
+    for coords in edgelist:
         xs.append(int(coords[0]) + offset)
         ys.append(int(coords[1]) + offset)
         if len(coords) == 3:

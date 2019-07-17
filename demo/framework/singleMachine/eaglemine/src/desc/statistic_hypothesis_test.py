@@ -19,11 +19,13 @@
 
 __author__ = 'wenchieh'
 
-
+# third-party lib
 import numpy as np
 from numpy.linalg import eig
 from sklearn.preprocessing import scale
 from scipy.stats import anderson
+
+# project
 from norm_extras import norm_anderson
 
 

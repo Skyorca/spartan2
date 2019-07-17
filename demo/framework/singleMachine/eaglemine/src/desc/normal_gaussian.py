@@ -19,9 +19,11 @@
 
 __author__ = 'wenchieh'
 
-
+# third-party lib
 import numpy as np
 from scipy.stats import multivariate_normal
+
+# project
 from norm_extras import mvnormcdf
 
 

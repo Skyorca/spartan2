@@ -9,6 +9,7 @@
 __author__ = 'wenchieh'
 
 
+# third-party lib
 import numpy as np
 
 
@@ -21,7 +22,7 @@ class Loader(object):
         sep = None
         with open(infn, 'r') as fp:
             for line in fp:
-                if (line.startswith("%") or line.startswith("#")): continue
+                if (line.startswith("%") or line.startswith("#")): continue;
                 line = line.strip()
                 if (" " in line): sep = " "
                 if ("," in line): sep = ","
@@ -30,22 +31,6 @@ class Loader(object):
                 break
             fp.close()
         return sep
-
-    def _get_deli_of_file_(self, infn):
-        '''
-        return the delimiter of the line.
-        :param infn: input file
-        '''
-        deli = None
-        for line in infn:
-            if (line.startswith("%") or line.startswith("#")): continue
-            line = line.strip()
-            if (" " in line): deli = " "
-            if ("," in line): deli = ","
-            if (";" in line): deli = ';'
-            if ("\t" in line): deli = "\t"
-            break
-        return deli
 
     def load_edgelist(self, infn_edgelist, comments='#', dtype=int,
                       usecols=(0, 1), idstartzero=True):
@@ -58,20 +43,22 @@ class Loader(object):
         :param idstartzero: whether the id start from zero or not.
         :return: numpy array
         '''
-        deli = self._get_deli_of_file_(infn_edgelist)
+        sep = self._get_sep_of_file_(infn_edgelist)
         data = []
 
         offset = 0
         if idstartzero != True:
             offset = -1
-        for line in infn_edgelist:
-            if line.startswith(comments):
-                continue
-            arr = line.strip().split(deli)
-            elem = []
-            for idx in usecols:
-                elem.append(dtype(arr[idx]) + offset)
-            data.append(np.array(elem))
+        with open(infn_edgelist) as fp:
+            for line in fp:
+                if line.startswith(comments):
+                    continue
+                arr = line.strip().split(sep)
+                elem = []
+                for idx in usecols:
+                    elem.append(dtype(arr[idx]) + offset)
+                data.append(np.array(elem))
+            fp.close()
 
         return np.array(data)
 

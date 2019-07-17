@@ -19,8 +19,10 @@
 
 __author__ = 'wenchieh'
 
-
+# sys
 import bisect
+
+# third-party lib
 import numpy as np
 
 
@@ -150,35 +152,12 @@ class HistogramHeuristicGenerator(object):
             self._ticks_vec.append(np.power(base, bucks))
             self.shape.append(len(bucks))
 
-    # def _bucketize_degree_new_(self, degrees, N, base=10):
-    #     init_vec = self._bucketize_N_(degrees, N, True, base=10)
-    #     bin_vec = list()
-    #     bin_vec.append(init_vec[0])
-    #     for i in range(1, N):
-    #         if init_vec[i] - bin_vec[-1] >= 1:
-    #             bin_vec.append(init_vec[i])
-    #     return bin_vec
-    #
-    # def _degree_feature_bucketize_(self, N, base):
-    #     if self._ticks_vec is None:
-    #         self._ticks_vec = list()
-    #     if self.shape is None:
-    #         self.shape = list()
-    #
-    #     deg_bucks = self._bucketize_degree_new_(self._features[:, 0], N, base) #self._bucketize_degree_(self._features[:, 0], base)
-    #     self._ticks_vec.append(deg_bucks)
-    #     self.shape.append(len(deg_bucks))
-    #     for mod in range(1, self._mode):
-    #         values = self._features[:, mod]
-    #         values = values[values > 0]
-    #         min_lgpv, max_lgpv = np.log(values.min()) * 1.0 / np.log(base), np.log(values.max()) * 1.0 / np.log(base)
-    #         N_bins = int(np.ceil(len(deg_bucks) / 10.0)) * 10
-    #         bucks = min_lgpv + (max_lgpv - min_lgpv) * np.arange(N_bins + 1) * 1.0 / N_bins
-    #         self._ticks_vec.append(np.power(base, bucks))
-    #         self.shape.append(len(bucks))
-
-
     def _multidiscrete_bucketize_(self, discretes_index, base):
+        '''
+        bucketize for multiple discrete features in log scale with base=base, like degree, # triangle, etc.
+        :param discretes_index: discrete features index in data
+        :param base: the base of log
+        '''
         if self._ticks_vec is None:
             self._ticks_vec = list()
         if self.shape is None:
@@ -201,8 +180,6 @@ class HistogramHeuristicGenerator(object):
                 bucks = min_lgpv + (max_lgpv - min_lgpv) * np.arange(N_bins + 1) * 1.0 / N_bins
                 self._ticks_vec.append(np.power(base, bucks))
                 self.shape.append(len(bucks))
-
-
 
     def histogram_gen(self, method="degree", **argv):
         """
@@ -292,8 +269,7 @@ class HistogramHeuristicGenerator(object):
             self.hpos2avgfeat[pos] = self.hpos2avgfeat.get(pos, np.zeros_like(feat)) + feat
 
         for pos in self.hpos2avgfeat.keys():
-            self.hpos2avgfeat[pos] /= 1.0 * self.hpos2avgfeat[pos]
-
+            self.hpos2avgfeat[pos] /= 1.0 * self.histogram[pos]
 
     def save_histogram(self, outfn, sep=','):
         with open(outfn, 'w') as ofp:

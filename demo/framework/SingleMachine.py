@@ -4,8 +4,10 @@
 
 from singleMachine.holoscope.holoscopeFraudDect import Ptype, HoloScope
 from singleMachine.fraudar.greedy import logWeightedAveDegree, np
-from singleMachine.eaglemine.eaglemine import *
 from singleMachine.ioutil import saveSimpleListData, loadedgelist2sm
+from singleMachine.eaglemine.src.eaglemine_main import eaglemine
+from singleMachine.eaglemine.src.graph2histogram import histogram_construct
+from singleMachine.eaglemine.src.views_viz import cluster_view
 import scipy.sparse.linalg as slin
 
 
@@ -35,14 +37,42 @@ class AnomalyDetection:
         np.savetxt("%s.cols" % (out_path + file_name, ), np.array(list(res[0][1])), fmt='%d')
         print "score obtained is ", res[1]
 
-    def EAGLEMINE(self, edgelist, feature, isBigraph):
-        graph_to_cluster(edgelist[2], feature, isBigraph)
+    def EAGLEMINE(self, x_feature_array, y_feature_array):
+        tempdir = "temp/"
+        tempfile = {
+            "feature": "outd2hub_feature",
+            "histogram": "histogram.out",
+            "node2hcel": "node2hcel.out",
+            "hcel2avgfeat": "hcel2avgfeat.out"
+        }
 
-        label_point = map_label_to_point("temp/point2pos.out", "outputData/hpos2label.out")
-
-        subgraph = get_subgraph(edgelist, label_point, feature)
-
-        return subgraph
+        outdir = "outputData/"
+        output = {
+            "hcel2label": "hcel2label.out",
+            "viz_clsv": "viz_cluster.png",
+            "node2lab": "nodelabel.out"
+        }
+        array_length = len(x_feature_array)
+        mix_array = [[y_feature_array[i], x_feature_array[i]] for i in xrange(array_length)]
+        graph_ndft = np.array(mix_array, dtype=np.float64)
+        histogram_construct(graph_ndft, int(1), tempdir + tempfile["histogram"], tempdir + tempfile["node2hcel"], tempdir + tempfile["hcel2avgfeat"])
+        eaglemine(tempdir + tempfile["histogram"], tempdir + tempfile["node2hcel"], tempdir + tempfile["hcel2avgfeat"], outdir, int(4))
+        cluster_view(outdir + output["hcel2label"], outdir + output["viz_clsv"])
+        node_cluster = {}
+        with open(outdir + output["node2lab"], 'r') as fin:
+            for line in fin:
+                line = line.strip()
+                if line.startswith("#"):
+                    continue
+                else:
+                    coords = line.split(',')
+                    node_id = int(coords[0])
+                    cluster_id = int(coords[1])
+                    if cluster_id not in node_cluster:
+                        node_cluster[cluster_id] = []
+                    node_cluster[cluster_id].append(node_id)
+        
+        return node_cluster
 
 class EigenDecompose:
     def SVDS(self, edgelist, out_path, file_name, k):
