@@ -20,7 +20,7 @@ alg_list = {
 }
 
 class Engine:
-    SINGLEMACHINE = "framework.SingleMachine"
+    SINGLEMACHINE = "models.SingleMachine"
 
 class Model():
     def __init__(self):

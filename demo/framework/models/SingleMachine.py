@@ -2,12 +2,12 @@
 # -*- coding:utf-8 -*-
 # Author:Viki Zhao
 
-from singleMachine.holoscope.holoscopeFraudDect import Ptype, HoloScope
-from singleMachine.fraudar.greedy import logWeightedAveDegree, np
-from singleMachine.ioutil import saveSimpleListData, loadedgelist2sm
-from singleMachine.eaglemine.src.eaglemine_main import eaglemine
-from singleMachine.eaglemine.src.graph2histogram import histogram_construct
-from singleMachine.eaglemine.src.views_viz import cluster_view
+from holoscope.holoscopeFraudDect import Ptype, HoloScope
+from fraudar.greedy import logWeightedAveDegree, np
+from ioutil import saveSimpleListData, loadedgelist2sm
+from eaglemine.src.eaglemine_main import eaglemine
+from eaglemine.src.graph2histogram import histogram_construct
+from eaglemine.src.views_viz import cluster_view
 import scipy.sparse.linalg as slin
 
 
